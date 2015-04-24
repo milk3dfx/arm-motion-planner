@@ -1,0 +1,108 @@
+<html>
+<head>
+<script src = "http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script>
+
+var ctx;
+var c;
+
+function drawMap(data){
+	for(var i = 0; i < data.obsticles.length; i++){
+		var obst = data.obsticles[i];
+		ctx.beginPath();
+		ctx.moveTo(obst.p1.x, data.height - obst.p1.y);
+		ctx.lineTo(obst.p2.x, data.height - obst.p2.y);
+		ctx.lineTo(obst.p3.x, data.height - obst.p3.y);
+		ctx.lineTo(obst.p1.x, data.height - obst.p1.y);
+		ctx.stroke();
+	}
+}
+
+function drawGrid(data){
+	for(var i = 0; i < data.width; i++){
+		for(var j = 0; j < data.height; j++){
+			ctx.globalAlpha = 0.5;
+			if(data.grid[i*data.height+j]==1){
+				ctx.fillStyle="#FF0000";
+			}else{
+				ctx.fillStyle="#00FF00";
+			}
+			ctx.fillRect(i*data.gridSize, (data.height-j-1)*data.gridSize,
+				data.gridSize-2, data.gridSize-2);
+			ctx.stroke();
+		}
+	}
+}
+
+function drawPaths(data){
+	if(data.paths.length <= 0){
+		return
+	}
+	var path = data.paths[0];
+	ctx.globalAlpha = 1;
+	ctx.fillStyle="#0000FF";
+	for(var i = 0; i < path.length; i++){
+		ctx.fillRect(
+			path[i][0]*grid.gridSize,
+			(grid.height-path[i][1]-1)*grid.gridSize,
+			grid.gridSize-2,
+			grid.gridSize-2);
+		ctx.stroke();
+	}
+}
+
+function toRad(degree){
+	return (degree*Math.PI)/180;
+}
+
+function drawRobot(data){
+	var points = [];
+	points.push(data.position);
+	var angle = 0;
+	for(var i = 0; i < data.links.length; i++){
+		angle += data.joints[i];
+		points.push([points[i][0]+data.links[i]*Math.cos(toRad(angle)),
+			     points[i][1]+data.links[i]*Math.sin(toRad(angle))]);
+	}
+
+	ctx.beginPath();
+	ctx.lineWidth = 3;
+	ctx.moveTo(points[0][0],c.height-points[0][1]);
+	for(var i = 1; i < points.length; i++){
+		ctx.lineTo(points[i][0],c.height-points[i][1]);
+	}
+	ctx.stroke();
+
+	console.log(points);
+}
+
+function init(){
+	c=document.getElementById('scene');
+	ctx=c.getContext('2d');
+
+	$.getJSON( "map.json", function( data ) {
+		c.width = data.width;
+		c.height = data.height;
+
+		drawMap(data);
+
+		$.getJSON( "grid.json", function( data ) {
+			grid = data;
+			drawGrid(data);
+
+			$.getJSON( "paths.json", function( data ) {
+				drawPaths(data);
+				$.getJSON( "robot.json", function( data ) {
+					drawRobot(data);
+				});
+			});
+
+		});
+	});
+}
+</script>
+</head>
+<body onload = "init();">
+	<canvas id="scene"></canvas>
+</body>
+</html>
