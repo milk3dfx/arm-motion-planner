@@ -42,35 +42,9 @@ def toRad(degree):
 	return (degree*math.pi)/180
 
 class Problem:
-		def __init__(self, env, robot, start, goal, heuristic, connections):
+		def __init__(self, env, robot):
 			self.env = env
 			self.robot = robot
-			self.start = start
-			self.goal = goal
-			self.heuristic = heuristic
-			self.grid = list()
-			self.connections = connections
-			self.expended = 0
-		
-		def getStart(self):
-			return self.start
-
-		def getGoal(self):
-			return self.goal
-
-		def getHeuristic(self, state1, state2):
-			if self.heuristic == "euclidian":
-				return math.sqrt(
-					(state2[0]-state1[0])*(state2[0]-state1[0]) + \
-					(state2[1]-state1[1])*(state2[1]-state1[1]))
-			else:
-				return abs(state2[0]-state1[0]) + abs(state2[1]-state1[1])
-
-		def getDistance(self, state1, state2):
-			return math.sqrt(
-				(state2[0]-state1[0])*(state2[0]-state1[0]) + \
-				(state2[1]-state1[1])*(state2[1]-state1[1]))
-
 		def toVector(self, configuration):
 			points = []
 			points += [{'x' : self.robot['position'][0], 'y' : self.robot['position'][1]}]
@@ -91,8 +65,7 @@ class Problem:
 
 			return False
 
-		def isGoal(self, robot_vector):
-			goal = self.getGoal()
+		def isGoal(self, robot_vector, goal):
 			if goal[0]+10 >= robot_vector[-1]['x'] and goal[0] <= robot_vector[-1]['x'] and \
 				goal[1]+10 >= robot_vector[-1]['y'] and goal[1] <= robot_vector[-1]['y']:
 				return True
@@ -107,10 +80,10 @@ class Problem:
 		def isActive(self, probability):
 			return (random.random() < probability)
 
-		def find_configuration(self, state_conf):
+		def find_configuration(self, state_conf, goal):
 			d_joints = self.robot['djoints']
 
-			for i in range(0, 1000):
+			for i in range(0, 1000000):
 				conf = state_conf[:]
 				for j in range(0, len(conf)):
 					if self.isActive(self.robot['activations'][j]):
@@ -118,9 +91,10 @@ class Problem:
 						conf[j] += toRad(d_joints[j][random.randint(0, djoint_len-1)])
 
 				vr = pr.toVector(conf)
-				if self.isGoal(vr):
+				if self.isGoal(vr, goal):
 					if not self.isCollide(vr):
 						return List2Degree(conf)
+			return False
 
 
 
@@ -141,7 +115,23 @@ paths = paths['paths']
 
 firstPath = paths[0]
 
-pr = Problem(env_map, robot, List2Rad(robot['joints']), [firstPath[1][0]*10, firstPath[1][1]*10], 'euclidian', 4)
-#vr = pr.toVector(List2Rad(robot['joints']))
-#pr.isGoal(vr)
-print pr.find_configuration( List2Rad(robot['joints']))
+print "Path length: ", len(firstPath)
+
+pr = Problem( env_map, robot )
+
+configurations = list()
+conf = pr.find_configuration( List2Rad(robot['joints']), [firstPath[1][0]*10, firstPath[1][1]*10] );
+print conf
+configurations += [conf]
+
+for i in range(2, len(firstPath)):
+	conf = pr.find_configuration( List2Rad(conf), [firstPath[i][0]*10, firstPath[i][1]*10] )
+	configurations += [conf]
+	print conf
+	if not conf:
+		break
+
+dataout = {'configurations': configurations}
+
+with open('data/configurations.json', 'w') as outfile:
+    json.dump(dataout, outfile)			

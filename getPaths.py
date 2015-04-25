@@ -180,8 +180,9 @@ print "End effector position: ", end_position
 
 
 print "GetPath"
-prob = Problem("grid.json", (end_position[0],end_position[1],getTopologyHash([1,1])), 
-	(40, 50, getTopologyHash([1,-1])), "euclidian", 8)
+prob = Problem("grid.json",
+	(end_position[0], end_position[1], getTopologyHash([1,1])), 
+	(35, 35, getTopologyHash([-1,-1])), "euclidian", 8)
 path = AStarT(prob)
 path = path[::-1]
 print path

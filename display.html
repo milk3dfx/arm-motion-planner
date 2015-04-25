@@ -76,6 +76,25 @@ function drawRobot(data){
 	console.log(points);
 }
 
+function drawConfiguration(conf){
+	var points = [];
+	points.push(robot.position);
+	var angle = 0;
+	for(var i = 0; i < robot.links.length; i++){
+		angle += conf[i];
+		points.push([points[i][0]+robot.links[i]*Math.cos(toRad(angle)),
+			     points[i][1]+robot.links[i]*Math.sin(toRad(angle))]);
+	}
+
+	ctx.beginPath();
+	ctx.lineWidth = 1;
+	ctx.moveTo(points[0][0],c.height-points[0][1]);
+	for(var i = 1; i < points.length; i++){
+		ctx.lineTo(points[i][0],c.height-points[i][1]);
+	}
+	ctx.stroke();
+}
+
 function init(){
 	c=document.getElementById('scene');
 	ctx=c.getContext('2d');
@@ -93,7 +112,13 @@ function init(){
 			$.getJSON( "paths.json", function( data ) {
 				drawPaths(data);
 				$.getJSON( "robot.json", function( data ) {
-					drawRobot(data);
+					robot = data
+					drawRobot(robot);
+					$.getJSON( "data/configurations.json", function( data ) {
+						for(var i=0; i<data.configurations.length; i++){
+							drawConfiguration(data.configurations[i]);
+						}
+					});
 				});
 			});
 
