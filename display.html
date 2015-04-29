@@ -3,10 +3,10 @@
 <script src = "http://code.jquery.com/jquery-2.1.3.min.js"></script>
 <script>
 
-var ctx;
-var c;
+var mainCtx;
+var mainCanvas;
 
-function drawMap(data){
+function drawMap(ctx, data){
 	for(var i = 0; i < data.obsticles.length; i++){
 		var obst = data.obsticles[i];
 		ctx.beginPath();
@@ -18,7 +18,7 @@ function drawMap(data){
 	}
 }
 
-function drawGrid(data){
+function drawGrid(ctx, data){
 	for(var i = 0; i < data.width; i++){
 		for(var j = 0; j < data.height; j++){
 			ctx.globalAlpha = 0.5;
@@ -34,7 +34,7 @@ function drawGrid(data){
 	}
 }
 
-function drawPaths(data){
+function drawPaths(ctx, data){
 	if(data.paths.length <= 0){
 		return
 	}
@@ -55,7 +55,7 @@ function toRad(degree){
 	return (degree*Math.PI)/180;
 }
 
-function drawRobot(data){
+function drawRobot(ctx, data){
 	var points = [];
 	points.push(data.position);
 	var angle = 0;
@@ -67,16 +67,16 @@ function drawRobot(data){
 
 	ctx.beginPath();
 	ctx.lineWidth = 3;
-	ctx.moveTo(points[0][0],c.height-points[0][1]);
+	ctx.moveTo(points[0][0], mainCanvas.height-points[0][1]);
 	for(var i = 1; i < points.length; i++){
-		ctx.lineTo(points[i][0],c.height-points[i][1]);
+		ctx.lineTo(points[i][0], mainCanvas.height-points[i][1]);
 	}
 	ctx.stroke();
 
 	console.log(points);
 }
 
-function drawConfiguration(conf){
+function drawConfiguration(ctx, conf){
 	var points = [];
 	points.push(robot.position);
 	var angle = 0;
@@ -88,36 +88,64 @@ function drawConfiguration(conf){
 
 	ctx.beginPath();
 	ctx.lineWidth = 1;
-	ctx.moveTo(points[0][0],c.height-points[0][1]);
+	ctx.moveTo(points[0][0], mainCanvas.height-points[0][1]);
 	for(var i = 1; i < points.length; i++){
-		ctx.lineTo(points[i][0],c.height-points[i][1]);
+		ctx.lineTo(points[i][0], mainCanvas.height-points[i][1]);
 	}
 	ctx.stroke();
 }
 
 function init(){
-	c=document.getElementById('scene');
-	ctx=c.getContext('2d');
+	mainCanvas=document.getElementById('scene');
+	mainCtx=mainCanvas.getContext('2d');
+
+	cBuffer = document.createElement('canvas');
+	cBufferCtx = cBuffer.getContext('2d');
+
+	cBufferBack = document.createElement('canvas');
+	cBufferBackCtx = cBufferBack.getContext('2d');
 
 	$.getJSON( "map.json", function( data ) {
-		c.width = data.width;
-		c.height = data.height;
+		mainCanvas.width = data.width;
+		mainCanvas.height = data.height;
+		cBuffer.width  = data.width;
+		cBuffer.height = data.height;
+		cBufferBack.width  = data.width;
+		cBufferBack.height = data.height;
 
-		drawMap(data);
+		drawMap(cBufferBackCtx, data);
 
 		$.getJSON( "grid.json", function( data ) {
 			grid = data;
-			drawGrid(data);
+			drawGrid(cBufferBackCtx, data);
 
 			$.getJSON( "paths.json", function( data ) {
-				drawPaths(data);
+				drawPaths(cBufferBackCtx, data);
 				$.getJSON( "robot.json", function( data ) {
 					robot = data
-					drawRobot(robot);
+					drawRobot(cBufferBackCtx, robot);
 					$.getJSON( "data/configurations.json", function( data ) {
+						/*
 						for(var i=0; i<data.configurations.length; i++){
-							drawConfiguration(data.configurations[i]);
+							drawConfiguration(cBufferCtx, data.configurations[i]);
 						}
+						mainCtx.drawImage(cBufferBack, 0, 0);
+						mainCtx.drawImage(cBuffer, 0, 0);
+						*/
+						frame = 0;
+						animationInterval = setInterval(function(){
+							if(frame == data.configurations.length){
+								clearInterval(animationInterval);
+								return;
+							}
+							mainCtx.clearRect (0 , 0 , mainCanvas.width, mainCanvas.height);
+							cBufferCtx.clearRect (0 , 0 , cBuffer.width, cBuffer.height);
+
+							drawConfiguration(cBufferCtx, data.configurations[frame]);
+							mainCtx.drawImage(cBufferBack, 0, 0);
+							mainCtx.drawImage(cBuffer, 0, 0);
+							frame++;
+						}, 100)
 					});
 				});
 			});
